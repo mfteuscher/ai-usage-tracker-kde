@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasmoid
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasma5support as Plasma5Support
@@ -8,8 +9,11 @@ PlasmoidItem {
     id: root
     property var usage: ({ providers: {} })
     property string collector: "ai-usage-tracker-collect --notifications " + (Plasmoid.configuration.notificationsEnabled ? "on" : "off")
+    readonly property color themeTextColor: Kirigami.Theme.textColor
+    readonly property bool useWhiteWordmarks: 0.2126 * themeTextColor.r + 0.7152 * themeTextColor.g + 0.0722 * themeTextColor.b > 0.5
 
     function provider(name) { return usage.providers && usage.providers[name] ? usage.providers[name] : ({ state: "unavailable" }) }
+    function wordmark(providerName) { return Qt.resolvedUrl("../images/" + providerName + (useWhiteWordmarks ? "-dark.svg" : "-light.svg")) }
     function percent(item) { return item && item.usedPercent !== null && item.usedPercent !== undefined ? Math.max(0, Math.min(100, item.usedPercent)) : 0 }
     function countdown(timestamp) {
         if (!timestamp) return i18n("Reset time unavailable")
@@ -79,11 +83,21 @@ PlasmoidItem {
             delegate: PlasmaComponents.GroupBox {
                 required property var modelData
                 Layout.fillWidth: true
-                title: modelData.title
+                title: ""
                 ColumnLayout {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     property var info: root.provider(modelData.key)
+                    Image {
+                        Layout.preferredWidth: 150
+                        Layout.preferredHeight: 24
+                        Layout.alignment: Qt.AlignLeft
+                        source: root.wordmark(modelData.key)
+                        fillMode: Image.PreserveAspectFit
+                        horizontalAlignment: Image.AlignLeft
+                        sourceSize.height: 48
+                        mipmap: true
+                    }
                     PlasmaComponents.Label {
                         Layout.fillWidth: true
                         visible: parent.info.state !== "fresh"
