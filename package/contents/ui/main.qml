@@ -102,21 +102,29 @@ PlasmoidItem {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     property var info: root.provider(modelData.key)
-                    Image {
-                        Layout.preferredWidth: 150
-                        Layout.preferredHeight: 24
-                        Layout.alignment: Qt.AlignLeft
-                        source: root.wordmark(modelData.key)
-                        fillMode: Image.PreserveAspectFit
-                        horizontalAlignment: Image.AlignLeft
-                        sourceSize.height: 48
-                        mipmap: true
-                    }
-                    PlasmaComponents.Label {
+                    RowLayout {
                         Layout.fillWidth: true
-                        visible: parent.info.state !== "fresh"
-                        text: parent.info.message || i18n("Usage data is unavailable")
-                        wrapMode: Text.WordWrap
+                        Image {
+                            Layout.preferredWidth: modelData.key === "claude" ? 112 : 89
+                            Layout.preferredHeight: 24
+                            Layout.alignment: Qt.AlignLeft
+                            source: root.wordmark(modelData.key)
+                            fillMode: Image.PreserveAspectFit
+                            horizontalAlignment: Image.AlignLeft
+                            sourceSize.height: 48
+                            mipmap: true
+                        }
+                        Rectangle {
+                            visible: parent.parent.info.state !== "fresh"
+                            Layout.preferredWidth: 8
+                            Layout.preferredHeight: 8
+                            Layout.alignment: Qt.AlignTop
+                            Layout.leftMargin: 4
+                            Layout.topMargin: 3
+                            radius: width / 2
+                            color: "#EAB308"
+                        }
+                        Item { Layout.fillWidth: true }
                     }
                     Repeater {
                         model: [
