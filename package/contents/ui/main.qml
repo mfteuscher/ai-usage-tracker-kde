@@ -47,8 +47,12 @@ PlasmoidItem {
     toolTipSubText: i18n("Claude: %1 · Codex: %2", countdown(provider("claude").primary ? provider("claude").primary.resetsAt : null), countdown(provider("codex").primary ? provider("codex").primary.resetsAt : null))
 
     compactRepresentation: MouseArea {
-        implicitWidth: 58
+        // Keep the visible 94px bars separated from neighboring panel widgets.
+        implicitWidth: 112
         implicitHeight: 30
+        Layout.minimumWidth: 112
+        Layout.preferredWidth: 112
+        Layout.maximumWidth: 112
         onClicked: root.expanded = !root.expanded
         Column {
             anchors.centerIn: parent
@@ -57,7 +61,7 @@ PlasmoidItem {
                 model: [{ key: "claude", color: "#D97706" }, { key: "codex", color: "#2563EB" }]
                 delegate: Rectangle {
                     required property var modelData
-                    width: 52
+                    width: 94
                     height: 8
                     radius: height / 2
                     color: "#404040"
