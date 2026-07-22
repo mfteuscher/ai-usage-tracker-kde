@@ -2,7 +2,7 @@
   "KPlugin": {
     "Id": "com.michaelteuscher.aiusagetracker",
     "Name": "AI Usage Tracker",
-    "Description": "Claude Code and Codex subscription usage in the panel",
+    "Description": "Quickly glance at AI usage limits in one place without having to enter the TUIs",
     "Icon": "utilities-system-monitor",
     "Version": "0.1.0",
     "License": "MIT",
