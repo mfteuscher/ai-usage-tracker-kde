@@ -14,6 +14,6 @@ if [[ -f "$settings" ]] && jq -e --arg command "$relay_command" '.statusLine.com
   jq 'del(.statusLine)' "$settings" > "$tmp"
   mv "$tmp" "$settings"
 fi
-rm -f "$HOME/.local/bin/ai-usage-tracker-collect" "$HOME/.local/bin/ai-usage-tracker-claude-relay"
+rm -f "$HOME/.local/bin/ai-usage-tracker-collect" "$HOME/.local/bin/ai-usage-tracker-claude-relay" "$HOME/.local/bin/ai-usage-tracker-claude-quota"
 rm -rf "${XDG_RUNTIME_DIR:-/tmp}/ai-usage-tracker" "$HOME/.local/state/ai-usage-tracker"
 echo "AI Usage Tracker removed."

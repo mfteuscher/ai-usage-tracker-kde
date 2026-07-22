@@ -20,6 +20,16 @@ class CollectorTests(unittest.TestCase):
         self.assertIsNone(collector.window("no", 1, 1, "x"))
         self.assertEqual(collector.window(25, 100, 300, "x")["usedPercent"], 25.0)
 
+    def test_unavailable_records_cli_capability(self):
+        self.assertFalse(collector.unavailable("missing CLI", cli_available=False)["cliAvailable"])
+
+    def test_claude_quota_reset_timestamp(self):
+        now = collector.datetime(2026, 7, 22, 16, 0, tzinfo=collector.ZoneInfo("America/Denver"))
+        self.assertEqual(collector.quota_reset_timestamp("8:40pm (America/Denver)", now),
+                         int(collector.datetime(2026, 7, 22, 20, 40, tzinfo=collector.ZoneInfo("America/Denver")).timestamp()))
+        self.assertEqual(collector.quota_reset_timestamp("Jul 27, 12pm (America/Denver)", now),
+                         int(collector.datetime(2026, 7, 27, 12, 0, tzinfo=collector.ZoneInfo("America/Denver")).timestamp()))
+
     def test_claude_state_fresh_and_stale(self):
         with tempfile.TemporaryDirectory() as directory:
             old_runtime = collector.RUNTIME_DIR

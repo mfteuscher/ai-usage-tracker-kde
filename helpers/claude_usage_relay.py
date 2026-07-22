@@ -15,11 +15,19 @@ try:
     limits = payload.get("rate_limits") or {}
     five_hour = limits.get("five_hour") or {}
     seven_day = limits.get("seven_day") or {}
+    five_used = five_hour.get("used_percentage")
+    five_reset = five_hour.get("resets_at")
+    seven_used = seven_day.get("used_percentage")
+    seven_reset = seven_day.get("resets_at")
+    # Claude also invokes status-line commands for events that contain no
+    # quota data. Never let one of those erase a usable previous snapshot.
+    if None in (five_used, five_reset, seven_used, seven_reset):
+        raise ValueError("status-line payload did not include both quota windows")
     snapshot = {
         "schemaVersion": 1,
         "updatedAt": int(time.time()),
-        "fiveHour": {"usedPercent": five_hour.get("used_percentage"), "resetsAt": five_hour.get("resets_at")},
-        "sevenDay": {"usedPercent": seven_day.get("used_percentage"), "resetsAt": seven_day.get("resets_at")},
+        "fiveHour": {"usedPercent": five_used, "resetsAt": five_reset},
+        "sevenDay": {"usedPercent": seven_used, "resetsAt": seven_reset},
     }
     runtime.mkdir(mode=0o700, parents=True, exist_ok=True)
     target = runtime / "claude.json"

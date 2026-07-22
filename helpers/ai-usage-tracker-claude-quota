@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Based on https://github.com/hiinaspace/claude-quota (commit dc3834f).
+# Starts an isolated Claude Code TUI, opens /usage, and emits its visible
+# subscription quota as JSON. This deliberately parses the TUI so it fails
+# loudly if its format changes instead of returning an incorrect value.
+set -euo pipefail
+
+command -v screen >/dev/null || { echo "claude quota scraper requires GNU screen" >&2; exit 1; }
+command -v claude >/dev/null || { echo "claude quota scraper requires Claude Code" >&2; exit 1; }
+
+cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/ai-usage-tracker/claude-quota"
+mkdir -p "$cache_root"
+capture="$cache_root/capture-$$.txt"
+session="ai-usage-tracker-quota-$$"
+
+cleanup() {
+    screen -S "$session" -X quit >/dev/null 2>&1 || true
+    rm -f "$capture"
+}
+trap cleanup EXIT
+
+cd "$cache_root"
+screen -dmS "$session" claude
+
+snapshot() {
+    screen -S "$session" -X hardcopy "$capture" 2>/dev/null || true
+    sleep 0.2
+    tr -d '\0' < "$capture" 2>/dev/null || true
+}
+
+ready=0
+for _ in $(seq 1 30); do
+    sleep 1
+    output=$(snapshot)
+    if grep -qi "trust this folder" <<< "$output"; then
+        screen -S "$session" -X stuff $'\r'
+        continue
+    fi
+    if grep -qiE "for shortcuts|shift\+tab|for agents" <<< "$output"; then
+        ready=1
+        break
+    fi
+done
+
+if [[ "$ready" != 1 ]]; then
+    echo "Claude Code did not reach its prompt; captured terminal follows:" >&2
+    snapshot >&2
+    exit 1
+fi
+
+screen -S "$session" -X stuff '/usage'
+sleep 1.5
+screen -S "$session" -X stuff $'\r'
+for _ in $(seq 1 15); do
+    sleep 1
+    output=$(snapshot)
+    grep -q "Current session" <<< "$output" && break
+done
+
+# The per-model weekly rows lie below the initial 80x24 screen.
+for _ in $(seq 1 8); do
+    screen -S "$session" -X stuff $'\033[B'
+    sleep 0.15
+done
+sleep 1
+snapshot >/dev/null
+
+python3 - "$capture" <<'PYTHON'
+import json
+import re
+import sys
+import time
+
+text = open(sys.argv[1], errors="replace").read()
+result = {}
+pattern = re.compile(
+    r"Current (session|week \(([^)]+)\))[^\n]*\n[^\n]*?(\d+)% used[^\n]*\n\s*Resets ([^\n]+)"
+)
+for match in pattern.finditer(text):
+    if match.group(1) == "session":
+        key = "session"
+    elif match.group(2).strip().lower() == "all models":
+        key = "week_all"
+    else:
+        key = "week_" + re.sub(r"[^a-z0-9]+", "_", match.group(2).strip().lower()).strip("_")
+    result[key] = {"pct": int(match.group(3)), "resets": match.group(4).strip()}
+
+if "session" not in result or "week_all" not in result:
+    sys.stderr.write("Claude quota scrape failed; captured terminal follows:\n" + text + "\n")
+    sys.exit(1)
+
+result["captured_at"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+print(json.dumps(result))
+PYTHON

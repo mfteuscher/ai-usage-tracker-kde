@@ -11,6 +11,7 @@ backup=""
 mkdir -p "$helper_dir" "$claude_dir"
 install -m 0755 "$project_dir/helpers/ai_usage_tracker_collect.py" "$helper_dir/ai-usage-tracker-collect"
 install -m 0755 "$project_dir/helpers/claude_usage_relay.py" "$helper_dir/ai-usage-tracker-claude-relay"
+install -m 0755 "$project_dir/helpers/ai-usage-tracker-claude-quota" "$helper_dir/ai-usage-tracker-claude-quota"
 
 if [[ -f "$settings" ]]; then
   jq empty "$settings" >/dev/null

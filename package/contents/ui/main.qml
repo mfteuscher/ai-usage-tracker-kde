@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls as Controls
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasmoid
 import org.kde.plasma.components as PlasmaComponents
@@ -8,12 +9,31 @@ import org.kde.plasma.plasma5support as Plasma5Support
 PlasmoidItem {
     id: root
     property var usage: ({ providers: {} })
-    property string collector: "ai-usage-tracker-collect --notifications " + (Plasmoid.configuration.notificationsEnabled ? "on" : "off")
+    property string activeCollector: ""
     readonly property color themeTextColor: Kirigami.Theme.textColor
     readonly property bool useWhiteWordmarks: 0.2126 * themeTextColor.r + 0.7152 * themeTextColor.g + 0.0722 * themeTextColor.b > 0.5
-    readonly property color progressTrackColor: useWhiteWordmarks ? "#404040" : '#c0c0c0'
+    readonly property color progressTrackColor: useWhiteWordmarks ? '#5f5f5f' : '#c0c0c0'
+    readonly property int panelWidth: Math.max(80, Plasmoid.configuration.panelWidth || 112)
+    readonly property int barWidth: Math.max(62, panelWidth - 18)
 
     function provider(name) { return usage.providers && usage.providers[name] ? usage.providers[name] : ({ state: "unavailable" }) }
+    function providerEnabled(name) {
+        var configured = name === "claude" ? Plasmoid.configuration.showClaude : Plasmoid.configuration.showCodex
+        return (configured === undefined ? true : configured) && provider(name).cliAvailable !== false
+    }
+    function enabledProviderNames() {
+        var names = []
+        if (Plasmoid.configuration.showClaude !== false) names.push("claude")
+        if (Plasmoid.configuration.showCodex !== false) names.push("codex")
+        return names.length ? names.join(",") : "none"
+    }
+    function visibleProviderModels() {
+        return [
+            { key: "claude", title: i18n("Claude Code"), color: "#D97706" },
+            { key: "codex", title: i18n("OpenAI Codex"), color: "#2563EB" }
+        ].filter(function(entry) { return root.providerEnabled(entry.key) })
+    }
+    function statusColor(info) { return info.state === "stale" ? "#EAB308" : "#DC2626" }
     function wordmark(providerName) { return Qt.resolvedUrl("../images/" + providerName + (useWhiteWordmarks ? "-dark.svg" : "-light.svg")) }
     function percent(item) { return item && item.usedPercent !== null && item.usedPercent !== undefined ? Math.max(0, Math.min(100, item.usedPercent)) : 0 }
     function countdown(timestamp) {
@@ -33,16 +53,25 @@ PlasmoidItem {
         if (!timestamp) return ""
         return Qt.locale().toString(new Date(timestamp * 1000), "h:mm AP")
     }
-    function refresh() {
-        executor.disconnectSource(collector)
-        executor.connectSource(collector)
+    function collectorCommand(forceClaudeUsage) {
+        var command = "ai-usage-tracker-collect --notifications " + (Plasmoid.configuration.notificationsEnabled ? "on" : "off") + " --providers " + enabledProviderNames()
+        if (Plasmoid.configuration.claudeUsageScraper) {
+            command += " --claude-source usage"
+            if (forceClaudeUsage) command += " --force-claude-usage"
+        }
+        return command
+    }
+    function refresh(forceClaudeUsage) {
+        activeCollector = collectorCommand(forceClaudeUsage === true)
+        executor.disconnectSource(activeCollector)
+        executor.connectSource(activeCollector)
     }
 
     Plasma5Support.DataSource {
         id: executor
         engine: "executable"
         onNewData: function(source, data) {
-            if (source !== root.collector || !data["stdout"]) return
+            if (source !== root.activeCollector || !data["stdout"]) return
             try { root.usage = JSON.parse(data["stdout"]) } catch (error) { root.usage = ({ providers: {} }) }
         }
     }
@@ -51,7 +80,7 @@ PlasmoidItem {
         running: true
         repeat: true
         triggeredOnStart: true
-        onTriggered: root.refresh()
+        onTriggered: root.refresh(false)
     }
 
     toolTipMainText: i18n("AI Usage Tracker")
@@ -59,20 +88,20 @@ PlasmoidItem {
 
     compactRepresentation: MouseArea {
         // Keep the visible 94px bars separated from neighboring panel widgets.
-        implicitWidth: 112
+        implicitWidth: root.panelWidth
         implicitHeight: 30
-        Layout.minimumWidth: 112
-        Layout.preferredWidth: 112
-        Layout.maximumWidth: 112
+        Layout.minimumWidth: root.panelWidth
+        Layout.preferredWidth: root.panelWidth
+        Layout.maximumWidth: root.panelWidth
         onClicked: root.expanded = !root.expanded
         Column {
             anchors.centerIn: parent
             spacing: 3
             Repeater {
-                model: [{ key: "claude", color: "#D97706" }, { key: "codex", color: "#2563EB" }]
+                model: root.visibleProviderModels()
                 delegate: Rectangle {
                     required property var modelData
-                    width: 94
+                    width: root.barWidth
                     height: 8
                     radius: height / 2
                     color: root.progressTrackColor
@@ -94,7 +123,7 @@ PlasmoidItem {
         implicitHeight: 300
         spacing: 6
         Repeater {
-            model: [{ key: "claude", title: i18n("Claude Code"), color: "#D97706" }, { key: "codex", title: i18n("OpenAI Codex"), color: "#2563EB" }]
+            model: root.visibleProviderModels()
             delegate: PlasmaComponents.GroupBox {
                 required property var modelData
                 Layout.fillWidth: true
@@ -116,6 +145,7 @@ PlasmoidItem {
                             mipmap: true
                         }
                         Rectangle {
+                            id: statusDot
                             visible: parent.parent.info.state !== "fresh"
                             Layout.preferredWidth: 8
                             Layout.preferredHeight: 8
@@ -123,7 +153,11 @@ PlasmoidItem {
                             Layout.leftMargin: 4
                             Layout.topMargin: 3
                             radius: width / 2
-                            color: "#EAB308"
+                            color: root.statusColor(parent.parent.info)
+                            HoverHandler { id: statusDotHover }
+                            Controls.ToolTip.visible: statusDotHover.hovered
+                            Controls.ToolTip.delay: 250
+                            Controls.ToolTip.text: parent.parent.info.message || i18n("Usage data is unavailable.")
                         }
                         Item { Layout.fillWidth: true }
                     }
@@ -181,7 +215,7 @@ PlasmoidItem {
             PlasmaComponents.Button {
                 text: i18n("Refresh now")
                 icon.name: "view-refresh"
-                onClicked: root.refresh()
+                onClicked: root.refresh(true)
             }
         }
     }
