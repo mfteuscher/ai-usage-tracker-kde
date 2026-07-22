@@ -18,9 +18,19 @@ PlasmoidItem {
     function countdown(timestamp) {
         if (!timestamp) return i18n("Reset time unavailable")
         var seconds = Math.max(0, timestamp - Math.floor(Date.now() / 1000))
+        var days = Math.floor(seconds / 86400)
         var hours = Math.floor(seconds / 3600)
         var minutes = Math.floor((seconds % 3600) / 60)
+        if (days > 0) return i18n("Resets in %1d %2h", days, Math.floor((seconds % 86400) / 3600))
         return hours > 0 ? i18n("Resets in %1h %2m", hours, minutes) : i18n("Resets in %1m", minutes)
+    }
+    function resetDateTime(timestamp) {
+        if (!timestamp) return ""
+        return Qt.locale().toString(new Date(timestamp * 1000), "MMM d, h:mm AP")
+    }
+    function updatedTime(timestamp) {
+        if (!timestamp) return ""
+        return Qt.locale().toString(new Date(timestamp * 1000), "h:mm AP")
     }
     function refresh() {
         executor.disconnectSource(collector)
@@ -109,7 +119,10 @@ PlasmoidItem {
                         wrapMode: Text.WordWrap
                     }
                     Repeater {
-                        model: [{ window: parent.info.primary, fallback: i18n("Session") }, { window: parent.info.secondary, fallback: i18n("Weekly") }]
+                        model: [
+                            { window: parent.info.primary, fallback: i18n("Session"), showUpdated: !parent.info.secondary },
+                            { window: parent.info.secondary, fallback: i18n("Weekly"), showUpdated: !!parent.info.secondary }
+                        ]
                         delegate: ColumnLayout {
                             required property var modelData
                             Layout.fillWidth: true
@@ -124,15 +137,25 @@ PlasmoidItem {
                                 Layout.fillWidth: true
                                 value: root.percent(modelData.window) / 100
                             }
-                            PlasmaComponents.Label {
-                                text: modelData.window ? root.countdown(modelData.window.resetsAt) : ""
-                                opacity: 0.7
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 4
+                                PlasmaComponents.Label {
+                                    text: modelData.window ? root.countdown(modelData.window.resetsAt) : ""
+                                    opacity: 0.7
+                                }
+                                PlasmaComponents.Label {
+                                    text: modelData.window ? "(" + root.resetDateTime(modelData.window.resetsAt) + ")" : ""
+                                    opacity: 0.5
+                                }
+                                Item { Layout.fillWidth: true }
+                                PlasmaComponents.Label {
+                                    visible: modelData.showUpdated && parent.parent.parent.info.lastUpdatedAt
+                                    text: visible ? i18n("Updated %1", root.updatedTime(parent.parent.parent.info.lastUpdatedAt)) : ""
+                                    opacity: 0.65
+                                }
                             }
                         }
-                    }
-                    PlasmaComponents.Label {
-                        text: parent.info.lastUpdatedAt ? i18n("Updated %1", new Date(parent.info.lastUpdatedAt * 1000).toLocaleTimeString()) : ""
-                        opacity: 0.65
                     }
                 }
             }
