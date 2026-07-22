@@ -11,6 +11,7 @@ PlasmoidItem {
     property string collector: "ai-usage-tracker-collect --notifications " + (Plasmoid.configuration.notificationsEnabled ? "on" : "off")
     readonly property color themeTextColor: Kirigami.Theme.textColor
     readonly property bool useWhiteWordmarks: 0.2126 * themeTextColor.r + 0.7152 * themeTextColor.g + 0.0722 * themeTextColor.b > 0.5
+    readonly property color progressTrackColor: useWhiteWordmarks ? "#404040" : '#c0c0c0'
 
     function provider(name) { return usage.providers && usage.providers[name] ? usage.providers[name] : ({ state: "unavailable" }) }
     function wordmark(providerName) { return Qt.resolvedUrl("../images/" + providerName + (useWhiteWordmarks ? "-dark.svg" : "-light.svg")) }
@@ -74,7 +75,7 @@ PlasmoidItem {
                     width: 94
                     height: 8
                     radius: height / 2
-                    color: "#404040"
+                    color: root.progressTrackColor
                     border.width: root.percent(root.provider(modelData.key).primary) >= 90 ? 1 : 0
                     border.color: "#DC2626"
                     Rectangle {
