@@ -14,18 +14,15 @@ Item {
     property alias cfg_panelWidth: panelWidth.value
     property alias cfg_showClaude: showClaude.checked
     property alias cfg_showCodex: showCodex.checked
-    property alias cfg_claudeUsageScraper: claudeUsageScraper.checked
     property int cfg_refreshSecondsDefault: 60
     property bool cfg_notificationsEnabledDefault: true
     property int cfg_panelWidthDefault: 112
     property bool cfg_showClaudeDefault: true
     property bool cfg_showCodexDefault: true
-    property bool cfg_claudeUsageScraperDefault: false
     property string title: i18n("General")
     property bool claudeAvailable: true
     property bool codexAvailable: true
-    property bool screenAvailable: false
-    property string cliCheckCommand: "/bin/sh -c 'command -v claude >/dev/null && printf claude; command -v codex >/dev/null && printf \" codex\"; command -v screen >/dev/null && printf \" screen\"'"
+    property string cliCheckCommand: "/bin/sh -c 'command -v claude >/dev/null && printf claude; command -v codex >/dev/null && printf \" codex\"'"
 
     Plasma5Support.DataSource {
         id: cliCheck
@@ -35,7 +32,6 @@ Item {
             var commands = (data["stdout"] || "").trim().split(/\s+/)
             configPage.claudeAvailable = commands.indexOf("claude") !== -1
             configPage.codexAvailable = commands.indexOf("codex") !== -1
-            configPage.screenAvailable = commands.indexOf("screen") !== -1
         }
     }
     Component.onCompleted: cliCheck.connectSource(cliCheckCommand)
@@ -58,7 +54,7 @@ Item {
             Controls.ComboBox {
                 id: refresh
                 property int value: 60
-                Kirigami.FormData.label: i18n("Refresh Codex usage:")
+                Kirigami.FormData.label: i18n("Refresh usage:")
                 model: [i18n("Every minute"), i18n("Every 2 minutes"), i18n("Every 5 minutes"), i18n("Every 10 minutes")]
                 currentIndex: [60, 120, 300, 600].indexOf(value)
                 onActivated: value = [60, 120, 300, 600][currentIndex]
@@ -90,15 +86,6 @@ Item {
                 id: showCodex
                 text: configPage.codexAvailable ? i18n("Show OpenAI Codex") : i18n("Codex CLI not found")
                 enabled: configPage.codexAvailable
-            }
-
-            Controls.CheckBox {
-                id: claudeUsageScraper
-                Kirigami.FormData.label: i18n("Claude data source:")
-                text: configPage.screenAvailable ? i18n("Use accurate /usage scraper (slower)") : i18n("Accurate /usage scraper needs GNU screen")
-                enabled: configPage.claudeAvailable && configPage.screenAvailable
-                Controls.ToolTip.visible: hovered
-                Controls.ToolTip.text: i18n("Runs Claude Code's /usage panel in the background. Automatic updates use a five-minute cache; Refresh now always gets a new reading.")
             }
         }
 

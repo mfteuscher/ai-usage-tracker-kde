@@ -4,35 +4,23 @@ set -euo pipefail
 project_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 package_dir="$project_dir/package"
 helper_dir="$HOME/.local/bin"
-claude_dir="$HOME/.claude"
-settings="$claude_dir/settings.json"
-backup=""
+settings="$HOME/.claude/settings.json"
 
-mkdir -p "$helper_dir" "$claude_dir"
+mkdir -p "$helper_dir"
 install -m 0755 "$project_dir/helpers/ai_usage_tracker_collect.py" "$helper_dir/ai-usage-tracker-collect"
-install -m 0755 "$project_dir/helpers/claude_usage_relay.py" "$helper_dir/ai-usage-tracker-claude-relay"
-install -m 0755 "$project_dir/helpers/ai-usage-tracker-claude-quota" "$helper_dir/ai-usage-tracker-claude-quota"
 
-if [[ -f "$settings" ]]; then
-  jq empty "$settings" >/dev/null
+# Earlier versions fed Claude usage through a status-line relay and a /usage
+# scraper. Remove both, and the statusLine entry only if it is still ours.
+legacy_relay="$helper_dir/ai-usage-tracker-claude-relay"
+rm -f "$legacy_relay" "$helper_dir/ai-usage-tracker-claude-quota"
+if [[ -f "$settings" ]] && jq -e --arg command "$legacy_relay" '.statusLine.command == $command' "$settings" >/dev/null; then
   backup="$settings.ai-usage-tracker.$(date +%Y%m%d-%H%M%S).bak"
   cp "$settings" "$backup"
-else
-  printf '{}\n' > "$settings"
+  tmp=$(mktemp)
+  jq 'del(.statusLine)' "$settings" > "$tmp"
+  mv "$tmp" "$settings"
+  echo "Removed the old AI Usage Tracker status-line relay from Claude settings (backup: $backup)."
 fi
-
-relay_command="$helper_dir/ai-usage-tracker-claude-relay"
-existing_command=$(jq -r '.statusLine.command // empty' "$settings")
-if [[ -n "$existing_command" && "$existing_command" != "$relay_command" ]]; then
-  echo "Existing Claude statusLine found; not replacing it: $existing_command" >&2
-  echo "Install aborted. Restore unchanged settings${backup:+ from $backup} and configure the relay manually." >&2
-  exit 2
-fi
-
-tmp=$(mktemp)
-jq --arg command "$relay_command" '.statusLine = {type: "command", command: $command}' "$settings" > "$tmp"
-mv "$tmp" "$settings"
 
 kpackagetool6 --type Plasma/Applet --upgrade "$package_dir" >/dev/null || kpackagetool6 --type Plasma/Applet --install "$package_dir" >/dev/null
 echo "Installed AI Usage Tracker. In Plasma, open Add Widgets and add AI Usage Tracker to your panel."
-[[ -n "$backup" ]] && echo "Claude settings backup: $backup"

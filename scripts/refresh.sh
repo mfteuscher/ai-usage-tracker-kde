@@ -10,7 +10,7 @@ find package -type f -name '*.svg' -print0 | xargs -0 -r xmllint --noout
 jq empty package/metadata.json
 xmllint --noout package/contents/config/main.xml
 
-# install.sh updates the complete package plus both local helper executables.
+# install.sh updates the complete package plus the local collector executable.
 ./scripts/install.sh
 systemctl --user restart plasma-plasmashell.service
 echo "AI Usage Tracker refreshed."
