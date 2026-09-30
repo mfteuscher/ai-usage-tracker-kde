@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
@@ -211,46 +213,47 @@ PlasmoidItem {
                     Repeater {
                         model: card.windows
                         delegate: ColumnLayout {
+                            id: windowRow
                             required property var modelData
                             required property int index
                             Layout.fillWidth: true
                             RowLayout {
                                 Layout.fillWidth: true
-                                PlasmaComponents.Label { text: modelData.label }
+                                PlasmaComponents.Label { text: windowRow.modelData.label }
                                 Item { Layout.fillWidth: true }
                                 PlasmaComponents.Label {
-                                    text: root.paceLabel(modelData)
-                                    color: root.pace(modelData) === "ahead" ? Kirigami.Theme.neutralTextColor : Kirigami.Theme.textColor
-                                    opacity: root.pace(modelData) === "ahead" ? 1 : 0.65
+                                    text: root.paceLabel(windowRow.modelData)
+                                    color: root.pace(windowRow.modelData) === "ahead" ? Kirigami.Theme.neutralTextColor : Kirigami.Theme.textColor
+                                    opacity: root.pace(windowRow.modelData) === "ahead" ? 1 : 0.65
                                     HoverHandler { id: paceHover }
                                     Controls.ToolTip.visible: paceHover.hovered && text !== ""
                                     Controls.ToolTip.delay: 250
                                     Controls.ToolTip.text: i18n("The line on the bar marks how much of the window's time is left. A bar shorter than the line is spending faster than the window elapses.")
                                 }
-                                PlasmaComponents.Label { text: i18n("%1% left", Math.round(root.remaining(modelData))) }
+                                PlasmaComponents.Label { text: i18n("%1% left", Math.round(root.remaining(windowRow.modelData))) }
                             }
                             UsageBar {
                                 Layout.fillWidth: true
                                 Layout.topMargin: 2
                                 Layout.bottomMargin: 2
-                                quota: modelData
+                                quota: windowRow.modelData
                                 fillColor: card.modelData.color
                             }
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 4
                                 PlasmaComponents.Label {
-                                    text: root.countdown(modelData.resetsAt)
+                                    text: root.countdown(windowRow.modelData.resetsAt)
                                     opacity: 0.7
                                 }
                                 PlasmaComponents.Label {
-                                    visible: !!modelData.resetsAt
-                                    text: "(" + root.resetDateTime(modelData.resetsAt) + ")"
+                                    visible: !!windowRow.modelData.resetsAt
+                                    text: "(" + root.resetDateTime(windowRow.modelData.resetsAt) + ")"
                                     opacity: 0.5
                                 }
                                 Item { Layout.fillWidth: true }
                                 PlasmaComponents.Label {
-                                    visible: index === card.windows.length - 1 && !!card.info.lastUpdatedAt
+                                    visible: windowRow.index === card.windows.length - 1 && !!card.info.lastUpdatedAt
                                     text: visible ? i18n("Updated %1", root.updatedTime(card.info.lastUpdatedAt)) : ""
                                     opacity: 0.65
                                 }

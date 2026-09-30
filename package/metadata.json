@@ -4,12 +4,12 @@
     "Name": "AI Usage Tracker",
     "Description": "Quickly glance at AI usage limits in one place without having to enter the TUIs",
     "Icon": "utilities-system-monitor",
-    "Version": "0.1.0",
+    "Version": "0.2.0",
     "License": "MIT",
     "Category": "System Information",
     "Authors": [{"Name": "Michael Teuscher"}],
-    "Website": "https://github.com/mfeuscher/ai-usage-tracker-kde",
-    "BugReportUrl": "https://github.com/mfeuscher/ai-usage-tracker-kde/issues"
+    "Website": "https://github.com/mfteuscher/ai-usage-tracker-kde",
+    "BugReportUrl": "https://github.com/mfteuscher/ai-usage-tracker-kde/issues"
   },
   "X-Plasma-API-Minimum-Version": "6.0",
   "KPackageStructure": "Plasma/Applet"

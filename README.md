@@ -51,6 +51,6 @@ Right-click the panel widget and select **Configure AI Usage Tracker…** to cho
 
 For releases, download the source archive, verify its published SHA-256 checksum, extract it, and run `./scripts/install.sh`. Release archives must contain the complete repository: the Plasma package, Python collector, and install scripts are all required.
 
-For local development, run `./scripts/refresh.sh` to validate packaged QML/SVG/XML files, reinstall the widget, and restart Plasma.
+For local development, run `./scripts/refresh.sh` to validate packaged QML/SVG/XML files, reinstall the widget, and restart Plasma. Its QML check uses Qt 6's `qmllint` from `qt6-declarative`.
 
 Run `./scripts/uninstall.sh` to remove the installed widget, collector, and saved state.

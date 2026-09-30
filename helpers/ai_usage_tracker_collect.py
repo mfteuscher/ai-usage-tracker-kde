@@ -222,7 +222,7 @@ def codex() -> dict[str, Any]:
             return response.get("result") or {}
 
         # Codex's stable app-server protocol requires initialization before account RPCs.
-        rpc(1, "initialize", {"clientInfo": {"name": "ai-usage-tracker", "version": "0.1.0"}, "capabilities": {}})
+        rpc(1, "initialize", {"clientInfo": {"name": "ai-usage-tracker", "version": "0.2.0"}, "capabilities": {}})
         account = rpc(2, "account/read", {"refreshToken": False}).get("account")
         if not account or account.get("type") != "chatgpt":
             raise Unsupported("Sign in to Codex with your ChatGPT subscription to show limits.")
